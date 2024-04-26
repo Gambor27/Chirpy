@@ -1,0 +1,34 @@
+package main
+
+import (
+	"errors"
+	"net/http"
+)
+
+func serverSetup() error {
+	mux := http.NewServeMux()
+	apiCfg := apiConfig{
+		fileserverHits: 0,
+	}
+	mux.Handle("/app/*", apiCfg.hitCounter(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
+	mux.HandleFunc("GET /api/healthz", health)
+	mux.HandleFunc("GET /admin/metrics/", apiCfg.reportHits)
+	mux.HandleFunc("/api/reset/", apiCfg.resetHits)
+	corsMux := middlewareCors(mux)
+
+	server := &http.Server{
+		Addr:    "127.0.0.1:8080",
+		Handler: corsMux,
+	}
+	err := server.ListenAndServe()
+	if err != nil {
+		return errors.New("server failed to start")
+	}
+	return nil
+}
+
+func health(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
