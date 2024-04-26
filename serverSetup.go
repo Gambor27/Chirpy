@@ -8,14 +8,19 @@ import (
 type apiConfig struct {
 	fileserverHits int
 	chirpID        int
+	db             *DB
 }
 
 func serverSetup() error {
-
+	chirpDB, err := NewDB("./db")
+	if err != nil {
+		return err
+	}
 	mux := http.NewServeMux()
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 		chirpID:        0,
+		db:             chirpDB,
 	}
 	mux.Handle("/app/*", apiCfg.hitCounter(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 	mux.HandleFunc("/", directory)
@@ -29,7 +34,7 @@ func serverSetup() error {
 		Addr:    "localhost:8080",
 		Handler: corsMux,
 	}
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		return errors.New("server failed to start")
 	}

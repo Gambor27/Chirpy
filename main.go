@@ -1,5 +1,10 @@
 package main
 
+import "fmt"
+
 func main() {
-	serverSetup()
+	err := serverSetup()
+	if err != nil {
+		fmt.Println(err)
+	}
 }
