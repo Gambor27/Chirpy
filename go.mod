@@ -1,3 +1,3 @@
-module github.com/Gambor27/chirpy.git
+module https://github.com/Gambor27/Chirpy
 
 go 1.22.1
