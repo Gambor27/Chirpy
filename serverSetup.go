@@ -3,23 +3,23 @@ package main
 import (
 	"errors"
 	"net/http"
+
+	"github.com/Gambor27/Chirpy/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits int
-	chirpID        int
-	db             *DB
+	db             *database.DB
 }
 
 func serverSetup() error {
-	chirpDB, err := NewDB("./db")
+	chirpDB, err := database.NewDB("./db")
 	if err != nil {
 		return err
 	}
 	mux := http.NewServeMux()
 	apiCfg := apiConfig{
 		fileserverHits: 0,
-		chirpID:        0,
 		db:             chirpDB,
 	}
 	mux.Handle("/app/*", apiCfg.hitCounter(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
@@ -28,6 +28,7 @@ func serverSetup() error {
 	mux.HandleFunc("GET /admin/metrics/", apiCfg.reportHits)
 	mux.HandleFunc("/api/reset/", apiCfg.resetHits)
 	mux.HandleFunc("POST /api/chirps", apiCfg.newChirp)
+	mux.HandleFunc("GET /api/chirps", apiCfg.listChirps)
 	corsMux := middlewareCors(mux)
 
 	server := &http.Server{

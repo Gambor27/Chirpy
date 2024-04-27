@@ -5,27 +5,35 @@ import (
 	"net/http"
 )
 
-type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
-}
-
 func (cfg *apiConfig) newChirp(w http.ResponseWriter, r *http.Request) {
-
+	var request struct {
+		Body string `json:"body"`
+	}
 	decoder := json.NewDecoder(r.Body)
-	chirp := Chirp{}
-	err := decoder.Decode(&chirp)
-	chirp.Body = profanityFilter(chirp.Body)
+	err := decoder.Decode(&request)
+	request.Body = profanityFilter(request.Body)
 
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "Couldn't decode Chirp")
 		return
-	} else if len(chirp.Body) > 140 {
-		jsonError(w, http.StatusInternalServerError, "Chirp to long")
+	} else if len(request.Body) > 140 {
+		jsonError(w, http.StatusBadRequest, "Chirp to long")
 		return
 	}
 
-	cfg.chirpID++
-	chirp.ID = cfg.chirpID
+	chirp, err := cfg.db.CreateChirp(request.Body)
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "Error creating Chirp")
+		return
+	}
 	respondWithJSON(w, http.StatusCreated, chirp)
+}
+
+func (cfg *apiConfig) listChirps(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.db.GetChirps()
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "Failed to load Chirps")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, chirps)
 }
