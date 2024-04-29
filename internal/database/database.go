@@ -95,7 +95,7 @@ func (db *DB) CreateUser(email string) (User, error) {
 	}
 
 	user := User{
-		ID:    len(currentData.Chirps) + 1,
+		ID:    len(currentData.Users) + 1,
 		Email: email,
 	}
 
@@ -135,9 +135,11 @@ func (db *DB) loadDB() (DBStructure, error) {
 		log.Println(err)
 		return DBStructure{}, err
 	}
-	dat := make(map[int]Chirp)
+	chirps := make(map[int]Chirp)
+	users := make(map[int]User)
 	output := DBStructure{
-		Chirps: dat,
+		Chirps: chirps,
+		Users:  users,
 	}
 
 	if len(contents) > 0 {
