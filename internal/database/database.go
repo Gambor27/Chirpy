@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"sort"
 	"sync"
 )
 
@@ -17,11 +16,17 @@ type DB struct {
 
 type DBStructure struct {
 	Chirps map[int]Chirp `json:"chirps"`
+	Users  map[int]User  `json:"users"`
 }
 
 type Chirp struct {
 	ID   int    `json:"id"`
 	Body string `json:"body"`
+}
+
+type User struct {
+	ID    int    `json:"id"`
+	Email string `json:"email"`
 }
 
 func NewDB(path string) (*DB, error) {
@@ -59,6 +64,8 @@ func (db *DB) ensureDB() error {
 }
 
 func (db *DB) CreateChirp(body string) (Chirp, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
 	currentData, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err
@@ -79,19 +86,47 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	return chirp, nil
 }
 
-func (db *DB) GetChirps() ([]Chirp, error) {
+func (db *DB) CreateUser(email string) (User, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	currentData, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
+
+	user := User{
+		ID:    len(currentData.Chirps) + 1,
+		Email: email,
+	}
+
+	currentData.Users[user.ID] = user
+
+	err = db.writeDB(currentData)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
+func (db *DB) GetChirps() (map[int]Chirp, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
 	chirps, err := db.loadDB()
 	if err != nil {
-		return []Chirp{}, err
+		return map[int]Chirp{}, err
 	}
-	output := make([]Chirp, 0)
-	for _, chirp := range chirps.Chirps {
-		output = append(output, chirp)
+	return chirps.Chirps, nil
+}
+
+func (db *DB) GetUsers() (map[int]User, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	dat, err := db.loadDB()
+	if err != nil {
+		return map[int]User{}, err
 	}
-	sort.Slice(output, func(i, j int) bool {
-		return output[i].ID > output[j].ID
-	})
-	return output, nil
+	return dat.Users, nil
 }
 
 func (db *DB) loadDB() (DBStructure, error) {
