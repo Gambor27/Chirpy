@@ -1,1 +1,1 @@
-go build -buildvcs=false -o out && ./out
+go build -buildvcs=false -o out && ./out --debug
