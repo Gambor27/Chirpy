@@ -29,8 +29,6 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 }
 
 func (db *DB) GetChirps() (map[int]Chirp, error) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
 	chirps, err := db.loadDB()
 	if err != nil {
 		return map[int]Chirp{}, err
