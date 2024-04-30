@@ -23,7 +23,7 @@ func serverSetup() error {
 		db:             chirpDB,
 	}
 	mux.Handle("/app/*", apiCfg.hitCounter(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
-	//mux.HandleFunc("/", directory)
+	mux.HandleFunc("/", directory)
 	mux.HandleFunc("GET /api/healthz", health)
 	mux.HandleFunc("GET /admin/metrics/", apiCfg.reportHits)
 	mux.HandleFunc("/api/reset/", apiCfg.resetHits)
@@ -52,8 +52,8 @@ func health(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-//func directory(w http.ResponseWriter, r *http.Request) {
-//	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-//	w.WriteHeader(http.StatusOK)
-//	w.Write([]byte("<html><body><a href=\"./app\">Homepage</a>\n<a href=\"./api/healthz\">Health</a>\n<a href=\"./api/reset\">Reset</a>\n<a href=\"./admin/metrics/\">Metrics</a></body></html>"))
-//}
+func directory(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("<html><body><a href=\"./app\">Homepage</a>\n<a href=\"./api/healthz\">Health</a>\n<a href=\"./api/reset\">Reset</a>\n<a href=\"./admin/metrics/\">Metrics</a></body></html>"))
+}

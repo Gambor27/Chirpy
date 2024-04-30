@@ -19,16 +19,6 @@ type DBStructure struct {
 	Users  map[int]User  `json:"users"`
 }
 
-type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
-}
-
-type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-}
-
 func NewDB(path string) (*DB, error) {
 	mux := &sync.RWMutex{}
 	db := DB{
@@ -61,72 +51,6 @@ func (db *DB) ensureDB() error {
 	}
 	//File already exists.  Exit method with no error.
 	return nil
-}
-
-func (db *DB) CreateChirp(body string) (Chirp, error) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-	currentData, err := db.loadDB()
-	if err != nil {
-		return Chirp{}, err
-	}
-
-	chirp := Chirp{
-		ID:   len(currentData.Chirps) + 1,
-		Body: body,
-	}
-
-	currentData.Chirps[chirp.ID] = chirp
-
-	err = db.writeDB(currentData)
-	if err != nil {
-		return Chirp{}, err
-	}
-
-	return chirp, nil
-}
-
-func (db *DB) CreateUser(email string) (User, error) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-	currentData, err := db.loadDB()
-	if err != nil {
-		return User{}, err
-	}
-
-	user := User{
-		ID:    len(currentData.Users) + 1,
-		Email: email,
-	}
-
-	currentData.Users[user.ID] = user
-
-	err = db.writeDB(currentData)
-	if err != nil {
-		return User{}, err
-	}
-
-	return user, nil
-}
-
-func (db *DB) GetChirps() (map[int]Chirp, error) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-	chirps, err := db.loadDB()
-	if err != nil {
-		return map[int]Chirp{}, err
-	}
-	return chirps.Chirps, nil
-}
-
-func (db *DB) GetUsers() (map[int]User, error) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-	dat, err := db.loadDB()
-	if err != nil {
-		return map[int]User{}, err
-	}
-	return dat.Users, nil
 }
 
 func (db *DB) loadDB() (DBStructure, error) {
