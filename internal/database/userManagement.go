@@ -61,6 +61,19 @@ func (db *DB) GetUsers() (map[int]User, error) {
 	return dat.Users, nil
 }
 
+func (db *DB) GetOutputUsers() (map[int]OutputUser, error) {
+	dat, err := db.loadDB()
+	if err != nil {
+		return map[int]OutputUser{}, err
+	}
+	outputMap := make(map[int]OutputUser)
+	for _, user := range dat.Users {
+		safeuser := db.getOutputUser(user)
+		outputMap[safeuser.ID] = safeuser
+	}
+	return outputMap, nil
+}
+
 func (db *DB) ValidateUser(username, password string) (OutputUser, error) {
 	users, err := db.GetUsers()
 	if err != nil {
@@ -85,4 +98,16 @@ func (db *DB) getOutputUser(user User) OutputUser {
 		ID:    user.ID,
 		Email: user.Email,
 	}
+}
+
+func (db *DB) SaveUser(user User) error {
+	dat, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+	dat.Users[user.ID] = user
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	db.writeDB(dat)
+	return nil
 }
