@@ -51,3 +51,9 @@ func (cfg *apiConfig) readUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	respondWithJSON(w, http.StatusOK, users)
 }
+
+/*
+func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
+
+}
+*/

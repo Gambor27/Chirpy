@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"os"
 
 	"github.com/Gambor27/Chirpy/internal/database"
 )
@@ -10,6 +11,7 @@ import (
 type apiConfig struct {
 	fileserverHits int
 	db             *database.DB
+	secret         string
 }
 
 func serverSetup() error {
@@ -21,6 +23,7 @@ func serverSetup() error {
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 		db:             chirpDB,
+		secret:         os.Getenv("JWT_SECRET"),
 	}
 	mux.Handle("/app/*", apiCfg.hitCounter(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 	mux.HandleFunc("/", directory)

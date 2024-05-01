@@ -15,7 +15,7 @@ func (cfg *apiConfig) newChirp(w http.ResponseWriter, r *http.Request) {
 	request.Body = profanityFilter(request.Body)
 
 	if err != nil {
-		jsonError(w, http.StatusInternalServerError, "Couldn't decode Chirp")
+		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	} else if len(request.Body) > 140 {
 		jsonError(w, http.StatusBadRequest, "Chirp to long")
@@ -24,7 +24,7 @@ func (cfg *apiConfig) newChirp(w http.ResponseWriter, r *http.Request) {
 
 	chirp, err := cfg.db.CreateChirp(request.Body)
 	if err != nil {
-		jsonError(w, http.StatusInternalServerError, "Error creating Chirp")
+		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	respondWithJSON(w, http.StatusCreated, chirp)
@@ -33,7 +33,7 @@ func (cfg *apiConfig) newChirp(w http.ResponseWriter, r *http.Request) {
 func (cfg *apiConfig) readChirps(w http.ResponseWriter, r *http.Request) {
 	chirps, err := cfg.db.GetChirps()
 	if err != nil {
-		jsonError(w, http.StatusInternalServerError, "Failed to load Chirps")
+		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -41,7 +41,7 @@ func (cfg *apiConfig) readChirps(w http.ResponseWriter, r *http.Request) {
 	if len(chirpID) > 0 {
 		chirpNum, chirpErr := strconv.Atoi(chirpID)
 		if chirpErr != nil {
-			jsonError(w, http.StatusBadRequest, "Error retreiving ChirpID")
+			jsonError(w, http.StatusBadRequest, chirpErr.Error())
 			return
 		}
 		if chirps[chirpNum].ID == 0 {
