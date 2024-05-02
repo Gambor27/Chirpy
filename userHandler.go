@@ -2,12 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 
-	"github.com/Gambor27/Chirpy/internal/database"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -98,30 +95,4 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondWithJSON(w, http.StatusOK, safeUsers[user.ID])
-}
-
-func (cfg *apiConfig) authenticateToken(tokenString string) (database.User, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
-		return []byte(cfg.secret), nil
-	})
-	if err != nil {
-		return database.User{}, err
-	}
-	id, err := token.Claims.GetSubject()
-	if err != nil {
-		return database.User{}, err
-	}
-	users, err := cfg.db.GetUsers()
-	if err != nil {
-		return database.User{}, err
-	}
-	intID, err := strconv.Atoi(id)
-	if err != nil {
-		return database.User{}, err
-	}
-	output, ok := users[intID]
-	if !ok {
-		return database.User{}, errors.New("userid no longer exists")
-	}
-	return output, nil
 }

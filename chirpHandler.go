@@ -22,7 +22,15 @@ func (cfg *apiConfig) newChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirp, err := cfg.db.CreateChirp(request.Body)
+	tokenHeader := r.Header.Get("Authorization")
+	token := tokenHeader[7:]
+	user, err := cfg.authenticateToken(token)
+	if err != nil {
+		jsonError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	chirp, err := cfg.db.CreateChirp(request.Body, user.ID)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -2,19 +2,22 @@ package database
 
 import (
 	"errors"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	ID           int                  `json:"id"`
+	Email        string               `json:"email"`
+	Password     string               `json:"password"`
+	RefreshToken map[string]time.Time `json:"refreshToken"`
 }
 
 type OutputUser struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID           int                  `json:"id"`
+	Email        string               `json:"email"`
+	RefreshToken map[string]time.Time `json:"refreshToken,omitempty"`
 }
 
 func (db *DB) CreateUser(email string, password string) (OutputUser, error) {
@@ -95,8 +98,9 @@ func (db *DB) ValidateUser(username, password string) (OutputUser, error) {
 
 func (db *DB) getOutputUser(user User) OutputUser {
 	return OutputUser{
-		ID:    user.ID,
-		Email: user.Email,
+		ID:           user.ID,
+		Email:        user.Email,
+		RefreshToken: user.RefreshToken,
 	}
 }
 
@@ -109,5 +113,21 @@ func (db *DB) SaveUser(user User) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 	db.writeDB(dat)
+	return nil
+}
+
+func (db *DB) UpdateRefreshToken(token string, userid int) error {
+	users, err := db.GetUsers()
+	if err != nil {
+		return err
+	}
+	tokenMap := make(map[string]time.Time)
+	tokenMap[token] = time.Now().Add(time.Hour * 1440)
+	user := users[userid]
+	user.RefreshToken = tokenMap
+	err = db.SaveUser(user)
+	if err != nil {
+		return err
+	}
 	return nil
 }

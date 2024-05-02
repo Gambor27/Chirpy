@@ -36,6 +36,8 @@ func serverSetup() error {
 	mux.HandleFunc("POST /api/users", apiCfg.newUser)
 	mux.HandleFunc("GET /api/users", apiCfg.readUsers)
 	mux.HandleFunc("PUT /api/users", apiCfg.updateUser)
+	mux.HandleFunc("POST /api/refresh", apiCfg.refreshToken)
+	mux.HandleFunc("POST /api/revoke", apiCfg.revokeToken)
 	mux.HandleFunc("GET /api/users/{userID}", apiCfg.readUsers)
 	mux.HandleFunc("POST /api/login", apiCfg.authLogin)
 	corsMux := middlewareCors(mux)

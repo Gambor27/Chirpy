@@ -1,11 +1,12 @@
 package database
 
 type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
+	ID       int    `json:"id"`
+	AuthorID int    `json:"author_id"`
+	Body     string `json:"body"`
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(body string, id int) (Chirp, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 	currentData, err := db.loadDB()
@@ -14,8 +15,9 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	}
 
 	chirp := Chirp{
-		ID:   len(currentData.Chirps) + 1,
-		Body: body,
+		ID:       len(currentData.Chirps) + 1,
+		AuthorID: id,
+		Body:     body,
 	}
 
 	currentData.Chirps[chirp.ID] = chirp

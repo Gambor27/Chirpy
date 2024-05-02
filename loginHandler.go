@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -31,22 +34,58 @@ func (cfg *apiConfig) authLogin(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+
 	var loginResponse struct {
-		User  database.OutputUser
-		Token string `json:"token"`
+		User         database.OutputUser
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
-	expiration := 86400
+	expiration := 3600
+
 	if request.Expires_in_seconds > 0 && request.Expires_in_seconds < expiration {
 		expiration = request.Expires_in_seconds
 	}
 
-	loginResponse.User = user
 	loginResponse.Token, err = cfg.createToken(user, expiration)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
+	loginResponse.User = user
+	loginResponse.RefreshToken = cfg.createRefresh()
+	err = cfg.db.UpdateRefreshToken(loginResponse.RefreshToken, loginResponse.User.ID)
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	respondWithJSON(w, http.StatusOK, loginResponse)
+}
+
+func (cfg *apiConfig) authenticateToken(tokenString string) (database.User, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
+		return []byte(cfg.secret), nil
+	})
+	if err != nil {
+		return database.User{}, err
+	}
+	id, err := token.Claims.GetSubject()
+	if err != nil {
+		return database.User{}, err
+	}
+	users, err := cfg.db.GetUsers()
+	if err != nil {
+		return database.User{}, err
+	}
+	intID, err := strconv.Atoi(id)
+	if err != nil {
+		return database.User{}, err
+	}
+	output, ok := users[intID]
+	if !ok {
+		return database.User{}, errors.New("userid no longer exists")
+	}
+	return output, nil
 }
 
 func (cfg *apiConfig) createToken(user database.OutputUser, expiration int) (string, error) {
@@ -64,4 +103,55 @@ func (cfg *apiConfig) createToken(user database.OutputUser, expiration int) (str
 		return "", err
 	}
 	return output, nil
+}
+
+func (cfg *apiConfig) createRefresh() string {
+	seed := make([]byte, 32)
+	rand.Read(seed)
+	return hex.EncodeToString(seed)
+}
+
+func (cfg *apiConfig) refreshToken(w http.ResponseWriter, r *http.Request) {
+	tokenHeader := r.Header.Get("Authorization")
+	token := tokenHeader[7:]
+	users, err := cfg.db.GetOutputUsers()
+	if err != nil {
+		respondWithJSON(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var reply struct {
+		Token string `json:"token"`
+	}
+	for _, user := range users {
+		expiration, ok := user.RefreshToken[token]
+		if ok && expiration.After(time.Now()) {
+			reply.Token, err = cfg.createToken(user, 3600)
+			if err != nil {
+				respondWithJSON(w, http.StatusInternalServerError, err)
+				return
+			}
+			respondWithJSON(w, http.StatusOK, reply)
+			return
+		}
+	}
+	jsonError(w, http.StatusUnauthorized, "Token Not Found")
+}
+
+func (cfg *apiConfig) revokeToken(w http.ResponseWriter, r *http.Request) {
+	tokenHeader := r.Header.Get("Authorization")
+	token := tokenHeader[7:]
+	users, err := cfg.db.GetUsers()
+	if err != nil {
+		respondWithJSON(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for _, user := range users {
+		expiration, ok := user.RefreshToken[token]
+		if ok && expiration.After(time.Now()) {
+			user.RefreshToken = nil
+			cfg.db.SaveUser(user)
+			respondWithJSON(w, http.StatusOK, "")
+		}
+	}
 }
