@@ -12,6 +12,7 @@ type apiConfig struct {
 	fileserverHits int
 	db             *database.DB
 	secret         string
+	apiKey         string
 }
 
 func serverSetup() error {
@@ -24,22 +25,26 @@ func serverSetup() error {
 		fileserverHits: 0,
 		db:             chirpDB,
 		secret:         os.Getenv("JWT_SECRET"),
+		apiKey:         os.Getenv("API_KEY"),
 	}
 	mux.Handle("/app/*", apiCfg.hitCounter(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
+	mux.HandleFunc("/api/reset/", apiCfg.resetHits)
 	mux.HandleFunc("/", directory)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.deleteChirp)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.readChirps)
+	mux.HandleFunc("GET /api/chirps", apiCfg.readChirps)
 	mux.HandleFunc("GET /api/healthz", health)
 	mux.HandleFunc("GET /admin/metrics/", apiCfg.reportHits)
-	mux.HandleFunc("/api/reset/", apiCfg.resetHits)
-	mux.HandleFunc("POST /api/chirps", apiCfg.newChirp)
-	mux.HandleFunc("GET /api/chirps", apiCfg.readChirps)
-	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.readChirps)
-	mux.HandleFunc("POST /api/users", apiCfg.newUser)
 	mux.HandleFunc("GET /api/users", apiCfg.readUsers)
-	mux.HandleFunc("PUT /api/users", apiCfg.updateUser)
+	mux.HandleFunc("GET /api/users/{userID}", apiCfg.readUsers)
+	mux.HandleFunc("POST /api/chirps", apiCfg.newChirp)
+	mux.HandleFunc("POST /api/login", apiCfg.authLogin)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.makeUserRed)
 	mux.HandleFunc("POST /api/refresh", apiCfg.refreshToken)
 	mux.HandleFunc("POST /api/revoke", apiCfg.revokeToken)
-	mux.HandleFunc("GET /api/users/{userID}", apiCfg.readUsers)
-	mux.HandleFunc("POST /api/login", apiCfg.authLogin)
+	mux.HandleFunc("POST /api/users", apiCfg.newUser)
+	mux.HandleFunc("PUT /api/users", apiCfg.updateUser)
+
 	corsMux := middlewareCors(mux)
 
 	server := &http.Server{

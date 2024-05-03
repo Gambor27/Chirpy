@@ -36,7 +36,9 @@ func (cfg *apiConfig) authLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var loginResponse struct {
-		User         database.OutputUser
+		ID           int    `json:"id"`
+		Email        string `json:"email"`
+		IsChirpyRed  bool   `json:"is_chirpy_red"`
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
 	}
@@ -52,9 +54,11 @@ func (cfg *apiConfig) authLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginResponse.User = user
+	loginResponse.ID = user.ID
+	loginResponse.Email = user.Email
+	loginResponse.IsChirpyRed = user.IsChirpyRed
 	loginResponse.RefreshToken = cfg.createRefresh()
-	err = cfg.db.UpdateRefreshToken(loginResponse.RefreshToken, loginResponse.User.ID)
+	err = cfg.db.UpdateRefreshToken(loginResponse.RefreshToken, loginResponse.ID)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return

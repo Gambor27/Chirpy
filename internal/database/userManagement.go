@@ -12,12 +12,14 @@ type User struct {
 	Email        string               `json:"email"`
 	Password     string               `json:"password"`
 	RefreshToken map[string]time.Time `json:"refreshToken"`
+	IsChirpyRed  bool                 `json:"is_chirpy_red"`
 }
 
 type OutputUser struct {
 	ID           int                  `json:"id"`
 	Email        string               `json:"email"`
 	RefreshToken map[string]time.Time `json:"refreshToken,omitempty"`
+	IsChirpyRed  bool                 `json:"is_chirpy_red"`
 }
 
 func (db *DB) CreateUser(email string, password string) (OutputUser, error) {
@@ -41,9 +43,10 @@ func (db *DB) CreateUser(email string, password string) (OutputUser, error) {
 	}
 
 	user := User{
-		ID:       len(currentData.Users) + 1,
-		Email:    email,
-		Password: passwordString,
+		ID:          len(currentData.Users) + 1,
+		Email:       email,
+		Password:    passwordString,
+		IsChirpyRed: false,
 	}
 
 	currentData.Users[user.ID] = user
@@ -101,6 +104,7 @@ func (db *DB) getOutputUser(user User) OutputUser {
 		ID:           user.ID,
 		Email:        user.Email,
 		RefreshToken: user.RefreshToken,
+		IsChirpyRed:  user.IsChirpyRed,
 	}
 }
 

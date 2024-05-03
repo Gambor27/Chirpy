@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -95,4 +96,31 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondWithJSON(w, http.StatusOK, safeUsers[user.ID])
+}
+
+func (cfg *apiConfig) makeUserRed(w http.ResponseWriter, r *http.Request) {
+	tokenHeader := r.Header.Get("Authorization")
+	var token string
+	if len(tokenHeader) > 7 {
+		token = tokenHeader[7:]
+	}
+	log.Println(token)
+	if token != cfg.apiKey {
+		jsonError(w, 401, "Invalid Key")
+	}
+	var request struct {
+		Event string         `json:"event"`
+		Data  map[string]int `json:"data"`
+	}
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&request)
+	if request.Event != "user.upgraded" {
+		respondWithJSON(w, http.StatusOK, "")
+		return
+	}
+
+	users, _ := cfg.db.GetUsers()
+	user := users[request.Data["user_id"]]
+	user.IsChirpyRed = true
+	cfg.db.SaveUser(user)
 }

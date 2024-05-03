@@ -61,3 +61,43 @@ func (cfg *apiConfig) readChirps(w http.ResponseWriter, r *http.Request) {
 	}
 	respondWithJSON(w, http.StatusOK, chirps)
 }
+
+func (cfg *apiConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
+	tokenHeader := r.Header.Get("Authorization")
+	token := tokenHeader[7:]
+	user, err := cfg.authenticateToken(token)
+	if err != nil {
+		jsonError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	chirps, err := cfg.db.GetChirps()
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	chirpID := r.PathValue("chirpID")
+	chirpNum, chirpErr := strconv.Atoi(chirpID)
+	if chirpErr != nil {
+		jsonError(w, http.StatusBadRequest, chirpErr.Error())
+		return
+	}
+	chirp := chirps[chirpNum]
+
+	if chirp.ID == 0 {
+		jsonError(w, http.StatusNotFound, "Chirp not found")
+		return
+	}
+	if chirp.AuthorID != user.ID {
+		jsonError(w, http.StatusForbidden, "Access denied")
+		return
+	}
+
+	delete(chirps, chirpNum)
+	err = cfg.db.SaveChirps(chirps)
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondWithJSON(w, http.StatusOK, "Chirp Deleted")
+}

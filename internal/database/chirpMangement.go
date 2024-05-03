@@ -37,3 +37,17 @@ func (db *DB) GetChirps() (map[int]Chirp, error) {
 	}
 	return chirps.Chirps, nil
 }
+
+func (db *DB) SaveChirps(chirps map[int]Chirp) error {
+	dat, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+	dat.Chirps = chirps
+
+	err = db.writeDB(dat)
+	if err != nil {
+		return err
+	}
+	return nil
+}
